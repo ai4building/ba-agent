@@ -1,0 +1,241 @@
+// O&M Operations — FDD, energy optimization, and virtual inspection logic
+//
+// These ops orchestrate the AI diagnosis workflow by collecting building
+// context data, sending it to the Python AI engine via hxPy, and returning
+// structured results.
+//
+// Ops defined in this file:
+//   agentDiagnose           {op}  — trigger FDD root cause analysis via Python
+//   agentTicketGen          {op}  — auto-create maintenance ticket after confirmed fault
+//   agentOptimizeSetpoints  {op}  — push optimized PID setpoints to FIN (Shadow Mode)
+//   agentLoadShed           {op}  — execute demand-response load shedding strategy
+//   agentInspect            {op}  — trigger virtual sensor inspection cycle
+
+// ---------------------------------------------------------------------------
+// agentDiagnose: Full FDD workflow — context collection → AI diagnosis → result
+//
+// Given an alarm point ref, this op:
+//   1. Reads the alarm point and its parent equipment
+//   2. Collects all sibling points under the same equipment
+//   3. Packages current values + recent history stats into a Grid
+//   4. Sends to Python FddEngine via hxPy
+//   5. Returns structured diagnosis with confidence score
+//
+// Usage:
+//   result: agentDiagnose(@alarm-point-id)
+//   result: agentDiagnose(@alarm-point-id, {hisRange: "pastWeek", message: "High temp alarm"})
+// ---------------------------------------------------------------------------
+agentDiagnose: (alarmRef, opts: {}) => do
+  // 1. Read the alarm point
+  alarmPoint: readById(alarmRef)
+  alarmMsg: opts->message ?: (try alarmPoint->dis else "Alarm")
+
+  // 2. Resolve parent equipment
+  equipRef: try alarmPoint->equipRef else null
+  equipDis: ""
+  if (equipRef != null) do
+    equip: try readById(equipRef) else null
+    if (equip != null) equipDis = try equip->dis else equipRef.toStr
+  end
+
+  // 3. Collect all points under the same equipment (siblings + alarm point)
+  filter: if (equipRef != null)
+    "point and equipRef==" + equipRef.toCode
+  else
+    "point and id==" + alarmRef.toCode
+
+  // Use agentPackGrid to collect values + history
+  hisRange: opts->hisRange ?: "yesterday"
+  contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
+
+  // 4. Send to Python FDD engine via hxPy
+  session: py(image: "ba-agent-py:latest")
+  pyExec(session,
+    "import sys; sys.path.insert(0, '/io'); " +
+    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
+  )
+
+  // Define context data in Python session
+  pyDefine(session, {grid: contextGrid})
+
+  // Build the diagnose call
+  alarmIdStr: alarmRef.toStr
+  equipIdStr: if (equipRef != null) equipRef.toStr else ""
+
+  raw: pyEval(session,
+    "svc.handle(action='diagnose', payload={" +
+    "'alarm_id': '" + alarmIdStr + "', " +
+    "'alarm_message': '" + alarmMsg.replace("'", "\\'") + "', " +
+    "'equip_id': '" + equipIdStr + "'" +
+    "}, grid=grid)"
+  )
+
+  // 5. Unpack result
+  agentUnpackResult(raw)
+end
+
+// ---------------------------------------------------------------------------
+// agentTicketGen: Generate maintenance ticket from confirmed diagnosis
+//
+// Takes a diagnosis result dict and creates a structured ticket record.
+// In production, this would integrate with a CMMS/work order system.
+//
+// Usage:
+//   diagnosis: agentDiagnose(@alarm-ref)
+//   if (diagnosis->ok and diagnosis->data->confidence > 0.7)
+//     ticket: agentTicketGen(diagnosis)
+// ---------------------------------------------------------------------------
+agentTicketGen: (diagnosis) => do
+  data: diagnosis->data
+  severity: try data->severity else "medium"
+  rootCause: try data->root_cause else "Unknown"
+  recommendations: try data->recommendations else []
+  equipment: try data->affected_equipment else []
+
+  // Build ticket record (stub — would commit to Folio or external CMMS)
+  ticket: {
+    type: "maintenance",
+    severity: severity,
+    summary: rootCause,
+    description: try data->explanation else rootCause,
+    equipment: equipment,
+    recommendations: recommendations,
+    source: "ba-agent-fdd",
+    status: "open",
+    createdAt: now()
+  }
+
+  ticket
+end
+
+// ---------------------------------------------------------------------------
+// agentOptimizeSetpoints: Energy optimization via Python AI engine
+//
+// Given an equipment ref, this op:
+//   1. Reads the equipment record and all child points
+//   2. Collects current values + recent history stats via agentPackGrid
+//   3. Sends to Python EnergyOptEngine via hxPy
+//   4. Returns structured optimization result with setpoint recommendations
+//
+// Usage:
+//   result: agentOptimizeSetpoints(@equip-ref)
+//   result: agentOptimizeSetpoints(@equip-ref, {target: "energy", hisRange: "pastWeek"})
+//
+// Options:
+//   target: "energy" | "comfort" | "balanced" (default: "balanced")
+//   hisRange: history range for load profile analysis (default: "yesterday")
+// ---------------------------------------------------------------------------
+agentOptimizeSetpoints: (equipRef, opts: {}) => do
+  // 1. Read equipment record
+  equip: readById(equipRef)
+  equipDis: try equip->dis else equipRef.toStr
+
+  // 2. Collect all points under this equipment
+  filter: "point and equipRef==" + equipRef.toCode
+  hisRange: opts->hisRange ?: "yesterday"
+  contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
+
+  // 3. Send to Python EnergyOptEngine via hxPy
+  session: py(image: "ba-agent-py:latest")
+  pyExec(session,
+    "import sys; sys.path.insert(0, '/io'); " +
+    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
+  )
+
+  // Define context data in Python session
+  pyDefine(session, {grid: contextGrid})
+
+  // Build optimization call
+  equipIdStr: equipRef.toStr
+  target: opts->target ?: "balanced"
+
+  raw: pyEval(session,
+    "svc.handle(action='optimize', payload={" +
+    "'equip_id': '" + equipIdStr + "', " +
+    "'equip_name': '" + equipDis.replace("'", "\\'") + "', " +
+    "'target': '" + target + "'" +
+    "}, grid=grid)"
+  )
+
+  // 4. Unpack result
+  agentUnpackResult(raw)
+end
+
+// ---------------------------------------------------------------------------
+// agentLoadShed: Execute demand-response load shedding strategy
+//
+// Identifies non-critical equipment and generates a staged load reduction
+// plan. Uses agentOptimizeSetpoints internally with aggressive energy target.
+//
+// Usage:
+//   result: agentLoadShed({level: 1, duration: 2hr})
+//   result: agentLoadShed({level: 2, equipFilter: "ahu"})
+//
+// Options:
+//   level: 1 (mild) | 2 (moderate) | 3 (aggressive) — default: 1
+//   duration: how long to maintain shed (default: 1hr)
+//   equipFilter: additional filter for target equipment
+// ---------------------------------------------------------------------------
+agentLoadShed: (opts: {}) => do
+  level: opts->level ?: 1
+  equipFilter: opts->equipFilter ?: "ahu or vav"
+
+  // Find all relevant equipment
+  equipList: readAll(equipFilter.parseFilter)
+
+  // For each equipment, run optimization with energy target
+  results: []
+  equipList.each equip => do
+    try do
+      optResult: agentOptimizeSetpoints(equip->id, {target: "energy"})
+      results = results.add(optResult)
+    end
+  end
+
+  {
+    ok: true,
+    action: "loadshed",
+    level: level,
+    equipment_count: equipList.size,
+    optimizations: results
+  }
+end
+
+// ---------------------------------------------------------------------------
+// agentInspect: Virtual sensor inspection cycle via Python AI engine
+//
+// Given a point filter, this op:
+//   1. Reads all matching sensor points
+//   2. Collects current values + recent history stats via agentPackGrid
+//   3. Sends to Python InspectEngine via hxPy
+//   4. Returns per-sensor health scores (0-100) with findings
+//
+// Usage:
+//   result: agentInspect("temp and sensor")
+//   result: agentInspect("point and equipRef==@equip-1", {hisRange: "pastWeek"})
+//
+// Options:
+//   hisRange: history range for trend analysis (default: "yesterday")
+// ---------------------------------------------------------------------------
+agentInspect: (filter, opts: {}) => do
+  // 1. Collect all matching sensor points with history
+  hisRange: opts->hisRange ?: "yesterday"
+  contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
+
+  // 2. Send to Python InspectEngine via hxPy
+  session: py(image: "ba-agent-py:latest")
+  pyExec(session,
+    "import sys; sys.path.insert(0, '/io'); " +
+    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
+  )
+
+  // Define context data in Python session
+  pyDefine(session, {grid: contextGrid})
+
+  raw: pyEval(session,
+    "svc.handle(action='inspect', payload={}, grid=grid)"
+  )
+
+  // 3. Unpack result
+  agentUnpackResult(raw)
+end

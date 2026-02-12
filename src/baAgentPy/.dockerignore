@@ -1,0 +1,41 @@
+# Dockerignore for BA-Agent Python Image
+# Exclude unnecessary files from Docker build context to reduce image size
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Testing
+.pytest_cache/
+.coverage
+*.pytest_cache
+htmlcov/
+.tox/
+
+# UV package manager
+.uv/
+.venv/
+uv.lock
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Documentation
+*.md
+LICENSE
+README*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

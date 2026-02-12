@@ -1,0 +1,136 @@
+// HMI Operations — engineering-side HMI logic processing
+//
+// These ops orchestrate HMI auto-generation by collecting device topology,
+// sending it to the Python HmiEngine via hxPy, and returning structured
+// layout JSON for rendering.
+//
+// Ops defined in this file (from DESIGN.md §3.3 & §Phase 6):
+//   agentGenHmiLayout  {op}  — generate HMI layout JSON from device topology
+//   agentPreviewHmi    {op}  — render HMI preview for operator confirmation
+
+// ---------------------------------------------------------------------------
+// agentGenHmiLayout: Generate HMI layout from device topology
+//
+// Given an equipment filter (or site ref), this op:
+//   1. Reads all matching equipment records
+//   2. For each equipment, collects its child points
+//   3. Packages equipment + point data into a structured payload
+//   4. Sends to Python HmiEngine via hxPy
+//   5. Returns structured HMI layout JSON (pages, widgets, navigation)
+//
+// Usage:
+//   result: agentGenHmiLayout("ahu")
+//   result: agentGenHmiLayout("equip and siteRef==@site-1")
+//   result: agentGenHmiLayout("equip", {gridColumns: 6})
+//
+// Options:
+//   gridColumns: number of columns in layout grid (default: 4)
+// ---------------------------------------------------------------------------
+agentGenHmiLayout: (filter, opts: {}) => do
+  // 1. Read all matching equipment
+  equipList: readAll(filter.parseFilter)
+
+  if (equipList.isEmpty) return {
+    ok: false,
+    action: "hmi",
+    error: "No equipment found matching filter: " + filter
+  }
+
+  // 2. Build equipment list with their points
+  equipment: []
+  equipList.each equip => do
+    equipId: equip->id
+    equipDis: try equip->dis else equipId.toStr
+
+    // Collect all points under this equipment
+    pointFilter: "point and equipRef==" + equipId.toCode
+    points: readAll(pointFilter.parseFilter)
+
+    // Build point list with current values
+    pointList: []
+    points.each pt => do
+      pointRec: {
+        id: pt->id.toStr,
+        dis: try pt->dis else "",
+        curVal: try pt->curVal else null,
+        unit: try pt->unit else "",
+        kind: try pt->kind else ""
+      }
+      pointList = pointList.add(pointRec)
+    end
+
+    equipRec: {
+      equip_id: equipId.toStr,
+      equip_name: equipDis,
+      points: pointList
+    }
+    equipment = equipment.add(equipRec)
+  end
+
+  // 3. Send to Python HmiEngine via hxPy
+  session: py(image: "ba-agent-py:latest")
+  pyExec(session,
+    "import sys; sys.path.insert(0, '/io'); " +
+    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
+  )
+
+  // Define equipment data in Python session
+  pyDefine(session, {equipment: equipment})
+
+  raw: pyEval(session,
+    "svc.handle(action='hmi', payload={'equipment': equipment})"
+  )
+
+  // 4. Unpack result
+  agentUnpackResult(raw)
+end
+
+// ---------------------------------------------------------------------------
+// agentPreviewHmi: Preview HMI layout for operator confirmation
+//
+// Takes an existing HMI layout result and formats it for human review.
+// The operator can confirm, adjust, or reject the layout before it is
+// committed to the Graphics Builder.
+//
+// Usage:
+//   layout: agentGenHmiLayout("ahu")
+//   preview: agentPreviewHmi(layout)
+//
+// Returns a simplified summary suitable for display in a confirmation dialog.
+// ---------------------------------------------------------------------------
+agentPreviewHmi: (layoutResult) => do
+  if (not layoutResult->ok) return layoutResult
+
+  data: layoutResult->data
+  pages: try data->pages else []
+  navigation: try data->navigation else []
+
+  // Build a human-readable summary
+  summary: "HMI Layout Preview\n"
+  summary = summary + "==================\n"
+  summary = summary + "Total Pages: " + (try data->total_pages else 0).toStr + "\n"
+  summary = summary + "Total Widgets: " + (try data->total_widgets else 0).toStr + "\n\n"
+
+  pages.each page => do
+    summary = summary + "Page: " + (try page->title else "Untitled") + "\n"
+    summary = summary + "  Type: " + (try page->equip_type else "generic") + "\n"
+    summary = summary + "  Grid: " + (try page->grid_columns else 4).toStr +
+              "x" + (try page->grid_rows else 6).toStr + "\n"
+    widgets: try page->widgets else []
+    summary = summary + "  Widgets: " + widgets.size.toStr + "\n"
+    widgets.each w => do
+      summary = summary + "    - " + (try w->label else "?") +
+                " (" + (try w->widget_type else "?") + ")\n"
+    end
+    summary = summary + "\n"
+  end
+
+  {
+    ok: true,
+    action: "hmi_preview",
+    summary: summary,
+    data: data,
+    navigation: navigation,
+    status: "pending_confirmation"
+  }
+end

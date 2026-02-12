@@ -1,0 +1,150 @@
+@tailwindcss base;
+@tailwindcss components;
+
+@layer base {
+  --tw-text-opacity: 1;
+  --bg-opacity: 0.95;
+  --tw-bg-secondary: #0f172a;
+  --tw-text-primary: #1a2022;
+  --tw-border-secondary: #e5e7eb;
+  --tw-ring: #22c55e;
+  --tw-ring-offset-width: 2px;
+  --tw-ring-offset-color: #e2e8f0;
+  --tw-shadow-lg: 0 10px 4px rgba(0, 0, 0, 0.1);
+  --tw-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --tw-shadow-sm: 0 1px 2px 4px rgba(0, 0, 0, 0.07);
+}
+
+/* Custom color palette for BA Agent */
+:root {
+  --tw-bg-primary: #1a2022;
+  --tw-bg-secondary: #0f172a;
+  --tw-accent: #0ea5a6c;
+  --tw-accent-light: #38bdf8;
+  --tw-text-primary: #1a2022;
+  --tw-text-secondary: #64748b;
+  --tw-ring: #22c55e;
+  --tw-warn: #f59e0b;
+  --tw-error: #ef4444;
+  --tw-info: #0ea5a6c;
+  --tw-success: #22c55e;
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    to: {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(-10px);
+    to: {
+      opacity: 0;
+    }
+  }
+}
+
+/* Component styles */
+
+.chat-view {
+  @apply flex flex-col h-screen bg-slate-900 text-slate-100 font-sans;
+}
+
+.chat-message {
+  @apply px-4 py-3 rounded-lg border border-slate-200 max-w-3xl;
+}
+
+.chat-message-user {
+  @apply bg-blue-500 text-white border-blue-600 rounded-br-lg;
+}
+
+.chat-message-assistant {
+  @apply bg-slate-100 text-slate-200 border-slate-200 rounded-br-lg;
+}
+
+.chat-message-system {
+  @apply bg-slate-800 text-slate-300 border-slate-700 rounded text-sm py-1 px-3;
+}
+
+.message-text {
+  @apply text-slate-200;
+}
+
+.message-timestamp {
+  @apply text-slate-400 text-xs;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white rounded-xl border border-slate-200 shadow-sm p-4;
+}
+
+.card-header {
+  @apply flex items-center gap-3 mb-4;
+}
+
+.card-icon {
+  @apply w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center;
+}
+
+.card-title {
+  @apply text-lg font-semibold text-slate-800;
+}
+
+.card-value {
+  @apply text-2xl font-bold text-slate-900;
+}
+
+.card-subtitle {
+  @apply text-sm text-slate-600;
+}
+
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-primary {
+  @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+.btn-secondary {
+  @apply bg-slate-100 text-slate-900 hover:bg-slate-200;
+}
+
+.btn-danger {
+  @apply bg-red-500 text-white hover:bg-red-600;
+}
+
+/* Input styles */
+.input {
+  @apply w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+/* Badge styles */
+.badge {
+  @apply px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.badge-success {
+  @apply bg-green-100 text-white;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-white;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-white;
+}

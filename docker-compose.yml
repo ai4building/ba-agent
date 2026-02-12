@@ -1,0 +1,14 @@
+services:
+  haxall:
+    image: ghcr.io/haxall/haxall:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./src/baAgentPod:/opt/haxall/pod/baAgent
+      - ./src/baAgentPy:/opt/haxall/io/baAgentPy   # hxPy loads Python code from io/
+      - haxall-data:/opt/haxall/data
+    environment:
+      - HXPY_IMAGE=ba-agent-py:latest   # custom hxPy image with AI dependencies
+
+volumes:
+  haxall-data:

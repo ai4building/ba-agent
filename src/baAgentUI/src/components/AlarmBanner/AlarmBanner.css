@@ -1,0 +1,197 @@
+/* AlarmBanner Styles - FIN 5.2 inspired */
+
+.alarm-banner {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alarm-critical {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.95), rgba(211, 47, 47, 0.95));
+  color: white;
+}
+
+.alarm-warning {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.95), rgba(245, 124, 0, 0.95));
+  color: white;
+}
+
+.alarm-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.alarm-icon {
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.alarm-summary {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alarm-count {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.alarm-details {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.alarm-critical-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.alarm-critical-count::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+}
+
+.alarm-warning-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.alarm-warning-count::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+}
+
+.alarm-dismiss {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.alarm-dismiss:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.alarm-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px 12px;
+}
+
+.alarm-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+}
+
+.alarm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alarm-dot.severity-critical {
+  background: white;
+}
+
+.alarm-dot.severity-high {
+  background: white;
+}
+
+.alarm-dot.severity-warning {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.alarm-dot.severity-info {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.alarm-text {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alarm-more {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .alarm-banner-content {
+    padding: 10px 12px;
+  }
+
+  .alarm-count {
+    font-size: 13px;
+  }
+
+  .alarm-preview {
+    padding: 6px 12px 10px;
+  }
+
+  .alarm-preview-item {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .alarm-text {
+    max-width: 150px;
+  }
+}

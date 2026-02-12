@@ -1,0 +1,148 @@
+# Docker Build & Push Workflow for BA-Agent Python Service
+# Automatically builds and pushes Docker image when code is pushed to main branch
+#
+# Configuration:
+# - GITHUB_ORG: Your GitHub username/organization (default: ai4building)
+# - DOCKERHUB_USERNAME: Your Docker Hub username (defaults to GITHUB_ORG)
+#
+# Image destinations:
+# - GitHub Container Registry: ghcr.io/ai4building/ba-agent-py:latest
+# - Docker Hub: docker.io/ai4building/ba-agent-py:latest
+
+name: Docker Build & Push
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering from GitHub Actions UI
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ba-agent-py
+  DOCKERFILE_PATH: src/baAgentPy
+  GITHUB_ORG: ai4building
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.GITHUB_ORG }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{version}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=build-{{date}},enable=true
+
+      - name: Build and push to GHCR
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha
+          provenance: true
+          sbom: true
+          platforms: linux/amd64
+
+      # Optional: Push to Docker Hub (requires DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets)
+      - name: Log in to Docker Hub
+        if: ${{ vars.DOCKERHUB_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push to Docker Hub
+        if: ${{ vars.DOCKERHUB_USERNAME != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=local
+          provenance: false
+          sbom: false
+
+      - name: Image digest
+        id: digest
+        if: ${{ !cancelled() }}
+        run: |
+          echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+      - name: Create deployment summary
+        if: ${{ !cancelled() }}
+        run: |
+          echo "## 🚀 Docker Image Built & Pushed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.REGISTRY }}/${{ env.GITHUB_ORG }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Docker Hub:** \`docker.io/${{ env.GITHUB_ORG }}/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`latest\` (always updated)" >> $GITHUB_STEP_SUMMARY
+          echo "- \${{ steps.meta.outputs.version }}\` (semver)" >> $GITHUB_STEP_SUMMARY
+          echo "- \`build-{{ date }}\` (unique build ID)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Digest:** \`${{ steps.digest.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Usage in Haxall" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`axon" >> $GITHUB_STEP_SUMMARY
+          echo "pyExec(session, py(image: \"${{ env.IMAGE_NAME }}:latest\"))" >> $GITHUB_STEP_SUMMARY
+          echo "pyExec(session, \"from baAgentPy.main import BaAgentService\")" >> $GITHUB_STEP_SUMMARY
+          echo "pyEval(session, \"svc = BaAgentService()\")" >> $GITHUB_STEP_SUMMARY
+          echo "pyEval(session, \"svc.ask('诊断一下AHU-01')\")" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      # Optional: Image scan (Trivy)
+      - name: Image scan (Trivy)
+        if: ${{ !cancelled() }}
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ steps.build.outputs.digest }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

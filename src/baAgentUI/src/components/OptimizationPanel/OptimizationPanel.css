@@ -1,0 +1,391 @@
+/* ============================================================
+ * OptimizationPanel Styles - Modern Design
+ * ============================================================ */
+
+.optimization-panel {
+  max-width: 650px;
+}
+
+/* Header */
+.optimization-header {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.optimization-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.optimization-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3);
+}
+
+.optimization-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.optimization-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.optimization-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.optimization-dismiss {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.optimization-dismiss:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  transform: rotate(90deg);
+}
+
+/* Content */
+.optimization-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Savings Highlight */
+.savings-highlight {
+  padding: 20px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 16px;
+  border: 1px solid #fcd34d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.savings-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.savings-trend-icon {
+  color: #d97706;
+}
+
+.savings-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.savings-value {
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.savings-label {
+  font-size: 13px;
+  color: #92400e;
+}
+
+.savings-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.savings-currency {
+  font-size: 14px;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.savings-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.savings-period {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Current Energy Section */
+.current-energy-section {
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.energy-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.energy-icon {
+  color: #64748b;
+}
+
+.energy-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.energy-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.energy-unit {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Progress Bars */
+.savings-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.progress-bars {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.progress-bar-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.progress-reversed .progress-fill {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.progress-label-end {
+  position: absolute;
+  right: 0;
+  top: -20px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Rationale */
+.rationale-section {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+}
+
+.rationale-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+/* Setpoints Section */
+.setpoints-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setpoints-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.setpoint-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s ease;
+}
+
+.setpoint-row:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+}
+
+.setpoint-row.priority-high {
+  border-left: 3px solid #ef4444;
+}
+
+.setpoint-row.priority-medium {
+  border-left: 3px solid #f59e0b;
+}
+
+.setpoint-row.priority-low {
+  border-left: 3px solid #3b82f6;
+}
+
+.setpoint-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setpoint-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.setpoint-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.value-current,
+.value-recommended {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.value-label {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.value-unit {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.value-current .value-number {
+  color: #64748b;
+}
+
+.value-recommended .value-number {
+  color: #22c55e;
+}
+
+.value-arrow {
+  display: flex;
+  align-items: center;
+  color: #94a3b8;
+}
+
+.arrow-up {
+  transform: rotate(-45deg);
+  color: #22c55e;
+}
+
+.arrow-down {
+  transform: rotate(45deg);
+  color: #ef4444;
+}
+
+.value-change {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.change-positive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.change-negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.setpoint-savings {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #22c55e;
+  margin-left: auto;
+}
+
+/* Footer */
+.optimization-footer {
+  justify-content: flex-end;
+  gap: 12px;
+}

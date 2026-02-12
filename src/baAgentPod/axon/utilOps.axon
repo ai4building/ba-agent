@@ -1,0 +1,133 @@
+// Utility Operations — data packaging, result unpacking, and history collection
+//
+// These functions are the data bridge between AXON and the Python AI service.
+// They prepare Haystack data for Python consumption and convert results back.
+//
+// Ops:
+//   agentPackGrid      {op}  — package point data + context into Grid for Python
+//   agentUnpackResult  {op}  — convert Python response back to Haxall-native format
+//   agentHisCollect    {op}  — batch collect hisRead data for related equipment chain
+
+// ---------------------------------------------------------------------------
+// agentPackGrid: Package point data with metadata into a single Grid
+//
+// Collects current values, tags, and optional history for a set of points
+// matching the given filter. Returns a Grid ready for pyDefine().
+//
+// Usage:
+//   grid: agentPackGrid(filter, {his: true, hisRange: "yesterday"})
+//   pyDefine(session, {data: grid})
+// ---------------------------------------------------------------------------
+agentPackGrid: (filter, opts: {}) => do
+  // Read all points matching the filter
+  points: readAll(parseFilter(filter))
+
+  // For each point, collect curVal and key tags
+  points = points.map(p => do
+    cur: try p->curVal else null
+    p = p.set("curVal", cur)
+
+    // Collect unit if present
+    unit: try p->unit else null
+    p = p.set("pointUnit", unit)
+
+    // Collect equipRef for relationship tracing
+    equipRef: try p->equipRef else null
+    p = p.set("equipRef", equipRef)
+
+    p
+  end)
+
+  // Optionally attach recent history
+  if (opts->his == true) do
+    range: opts->hisRange ?: "yesterday"
+    points = points.map(p => do
+      if (p.has("his")) do
+        his: hisRead(p->id, range)
+        avgVal: try his.fold(avg) else null
+        minVal: try his.fold(min) else null
+        maxVal: try his.fold(max) else null
+        p = p.set("hisAvg", avgVal).set("hisMin", minVal).set("hisMax", maxVal)
+      end
+      p
+    end)
+  end
+
+  // Return clean Grid with only columns Python needs
+  cols: ["id", "dis", "curVal", "pointUnit", "equipRef", "kind"]
+  if (opts->his == true)
+    cols = cols.addAll(["hisAvg", "hisMin", "hisMax"])
+
+  points.reorderCols(cols)
+end
+
+// ---------------------------------------------------------------------------
+// agentUnpackResult: Convert Python AI response Grid into Haxall-native dict
+//
+// Parses the response Grid from pyEval() and extracts structured results.
+// Checks the 'ok' flag and raises error if the AI service reported failure.
+//
+// Usage:
+//   raw: pyEval(session, "svc.handle(action='diagnose', payload=data)")
+//   result: agentUnpackResult(raw)
+//   if (result->ok) result->data else throw result->error
+// ---------------------------------------------------------------------------
+agentUnpackResult: (raw) => do
+  // raw is a Grid returned by pyEval — take first row
+  row: if (raw is Grid) raw.first else raw
+
+  ok: try row->ok else false
+  action: try row->action else "unknown"
+  error: try row->error else null
+
+  // Collect all r_ prefixed keys as the result payload
+  result: {}
+  row.each((v, k) => do
+    kStr: k.toStr
+    if (kStr.startsWith("r_")) do
+      cleanKey: kStr[2..-1]
+      result = result.set(cleanKey, v)
+    end
+  end)
+
+  {ok: ok, action: action, data: result, error: error}
+end
+
+// ---------------------------------------------------------------------------
+// agentHisCollect: Batch collect history for an equipment chain
+//
+// Given an equipment ref, finds all child points and collects their history
+// into a single Grid with aligned timestamps. Useful for FDD correlation
+// analysis and energy pattern recognition.
+//
+// Usage:
+//   bundle: agentHisCollect(@equip-id, "pastWeek")
+//   pyDefine(session, {history: bundle})
+// ---------------------------------------------------------------------------
+agentHisCollect: (equipRef, range: "yesterday") => do
+  // Find all points belonging to this equipment
+  points: readAll(point and equipRef==equipRef)
+
+  // Filter to only points with history
+  hisPoints: points.findAll(p => p.has("his"))
+
+  if (hisPoints.isEmpty) return {cols: [], data: []}
+
+  // Collect history for each point
+  histories: hisPoints.map(p => do
+    his: hisRead(p->id, range)
+    // Rename 'val' column to point's dis for identification
+    colName: p->dis ?: p->id.toStr
+    his = his.renameCol("val", colName)
+    {id: p->id, dis: colName, data: his}
+  end)
+
+  // Return metadata + individual histories (Python will align timestamps)
+  {
+    equipRef: equipRef,
+    range: range,
+    pointCount: hisPoints.size,
+    points: hisPoints.map(p => {id: p->id, dis: p->dis, kind: try p->kind else null}),
+    histories: histories.map(h => h->data)
+  }
+end

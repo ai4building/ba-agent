@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# uv
+uv.lock
+
+# Node / React
+node_modules/
+src/baAgentUI/dist/
+
+# Fantom
+*.pod
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local

@@ -1,0 +1,12 @@
+/* ============================================================
+   baAgentUI Global Styles
+   FIN 5.2 inspired design system with Tailwind CSS v4
+   ============================================================ */
+
+@import "tailwindcss";
+
+/* Component styles */
+@import './components/ui/ui.css';
+@import './components/DiagnosticCard/DiagnosticCard.css';
+@import './components/HmiPreview/HmiPreview.css';
+@import './components/OptimizationPanel/OptimizationPanel.css';

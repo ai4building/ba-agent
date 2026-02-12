@@ -1,0 +1,49 @@
+[project]
+name = "ba-agent-py"
+version = "0.1.0"
+description = "BA-Agent Python AI Service — loaded by hxPy containers"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pydantic>=2.0",
+    "duckdb>=1.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.10",
+    "pandas-stubs>=2.2",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["langchain.*", "langchain_core.*", "duckdb.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "mypy>=1.10",
+    "pandas-stubs>=2.2",
+    "types-requests>=2.32.4.20260107",
+]

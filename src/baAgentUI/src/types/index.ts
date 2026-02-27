@@ -184,3 +184,115 @@ export interface EquipmentContext {
     cur_val?: unknown;
   }>;
 }
+
+// ============================================================
+// WebSocket Chat Protocol Types
+// ============================================================
+
+export type WsFrameType = 'message' | 'progress' | 'result' | 'error' | 'context';
+
+export interface WsFrame {
+  type: WsFrameType;
+  id: string;
+  timestamp: string;
+}
+
+export interface WsMessageFrame extends WsFrame {
+  type: 'message';
+  content: string;
+  context?: ContextSnapshot;
+}
+
+export interface WsProgressFrame extends WsFrame {
+  type: 'progress';
+  percent: number;
+  stage: string;
+}
+
+export interface WsResultFrame extends WsFrame {
+  type: 'result';
+  result: AgentResult;
+  content: string;
+}
+
+export interface WsErrorFrame extends WsFrame {
+  type: 'error';
+  code: string;
+  message: string;
+}
+
+export interface ContextSnapshot {
+  activeAlarms: number;
+  selectedEquipRef?: string;
+  currentView: 'chat' | 'hmi' | 'inspection' | 'optimization';
+  recentPointIds: string[];
+}
+
+export type WsConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
+
+export interface StreamingMessage extends ChatMessage {
+  isStreaming: boolean;
+  fullContent: string;
+  displayedContent: string;
+}
+
+// ============================================================
+// Audit / Approval Types
+// ============================================================
+
+export type ApprovalStatus = 'pending' | 'reviewing' | 'approved' | 'rejected' | 'expired';
+
+export interface PendingAiAction {
+  id: string;
+  pointId: string;
+  pointName: string;
+  equipName: string;
+  currentValue: number;
+  suggestedValue: number;
+  unit: string;
+  rationale: string;
+  confidence: number;
+  timestamp: Date;
+  status: ApprovalStatus;
+  isLifeSafety: boolean;
+  expiresAt?: Date;
+}
+
+export interface AuditLogEntry {
+  actionId: string;
+  pointId: string;
+  operator: string;
+  decision: 'approved' | 'rejected';
+  timestamp: Date;
+  previousValue: number;
+  newValue: number;
+}
+
+// ============================================================
+// SVG Widget Props (HMI Canvas)
+// ============================================================
+
+export interface SvgWidgetProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  pointId: string;
+  currentValue?: number | string | boolean;
+  unit?: string;
+  onClick?: () => void;
+  isSelected?: boolean;
+}
+
+// Haystack point data for audit detection
+export interface HaystackPointData {
+  id: string;
+  dis: string;
+  equipRef?: string;
+  equipDis?: string;
+  curVal?: number;
+  aiSuggestedVal?: number;
+  unit?: string;
+  tags: string[];
+}

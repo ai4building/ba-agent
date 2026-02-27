@@ -203,6 +203,11 @@ export class HaystackClient {
   async cancelWrite(pointId: string): Promise<AgentResponse> {
     return this.invokeOp('cancelWrite', { pointId });
   }
+
+  // Commit AI-suggested change (wraps confirmWrite for audit trail)
+  async commitAiChange(pointId: string): Promise<AgentResponse> {
+    return this.confirmWrite(pointId);
+  }
 }
 
 // Create singleton instance

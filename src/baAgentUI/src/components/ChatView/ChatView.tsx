@@ -8,11 +8,28 @@ import { Scroll } from 'lucide-react';
 import { ChatMessage } from '../ChatMessage';
 import { ChatInput } from '../ChatInput';
 import { useChatAgent } from '../../hooks/useChatAgent';
-import type { DiagnosisData, OptimizationData, HmiLayout } from '../../types';
+import { useAgentChat } from '../../hooks/useAgentChat';
+import type { ChatMessage as ChatMessageType, DiagnosisData, OptimizationData, HmiLayout, StreamingMessage, WsConnectionState } from '../../types';
 import './ChatView.css';
 
-export function ChatView() {
-  const { messages, sendMessage, isLoading } = useChatAgent();
+interface ChatViewProps {
+  /** When provided, use WebSocket mode via useAgentChat */
+  wsUrl?: string;
+}
+
+export function ChatView({ wsUrl }: ChatViewProps = {}) {
+  // HTTP fallback
+  const httpChat = useChatAgent();
+  // WebSocket mode
+  const wsChat = useAgentChat({ wsUrl });
+
+  // Select active mode
+  const useWs = !!wsUrl;
+  const messages: ChatMessageType[] = useWs ? wsChat.messages : httpChat.messages;
+  const sendMessage = useWs ? wsChat.sendMessage : httpChat.sendMessage;
+  const isLoading = useWs ? false : httpChat.isLoading;
+  const streamingMessage: StreamingMessage | null = useWs ? wsChat.streamingMessage : null;
+  const wsConnectionState: WsConnectionState = wsChat.connectionState;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -62,7 +79,9 @@ export function ChatView() {
       <div className="chat-header">
         <div className="chat-title">
           <h1>BA Agent</h1>
-          <span className="status-badge">Online</span>
+          <span className="status-badge">
+            {useWs ? wsConnectionState : 'Online'}
+          </span>
         </div>
         <div className="chat-actions">
           <button className="icon-btn" title="Clear history">
@@ -96,6 +115,16 @@ export function ChatView() {
                 onConfirmHmi={handleConfirmHmi}
               />
             ))}
+            {/* Streaming message (typewriter effect) */}
+            {streamingMessage && (
+              <ChatMessage
+                key={streamingMessage.id}
+                message={streamingMessage}
+                onCreateTicket={handleCreateTicket}
+                onApplyOptimization={handleApplyOptimization}
+                onConfirmHmi={handleConfirmHmi}
+              />
+            )}
             {isLoading && (
               <div className="chat-message chat-message-assistant">
                 <div className="message-avatar">

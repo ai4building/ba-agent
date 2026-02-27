@@ -29,6 +29,15 @@ BA-Agent (Building Automation AI Agent) is a cross-language integration system b
 **Route A:** Ractive.js custom widgets inside FIN Graphics Builder for embedded diagnostics. 
 **Route B:** React SPA (chat interface, diagnostic cards, 3D topology fault-path visualization) mounted as external app via FIN WebMod. Both communicate with AI Agent through Haystack Ops or WebSocket.
 
+### baAgentUI Core Classes
+
+Three core classes provide the interaction layer for "chat-as-control" closed loop:
+
+- **AgentChatManager** (`src/baAgentUI/src/core/AgentChatManager.ts`) — WebSocket connection manager with exponential-backoff reconnection, message queuing, and streaming support. Wrapped by `useAgentChat` hook which adds typewriter animation. Falls back to HTTP (`useChatAgent`) when WebSocket is unavailable.
+- **HmiCanvasRenderer** (`src/baAgentUI/src/core/HmiCanvasRenderer.ts`) — Maps HMI grid coordinates to SVG pixel positions. `HmiCanvas` component renders live SVG widgets (Gauge, Trend, Status, Setpoint, Alarm) registered in `SmartWidgetLibrary`. Parent component watches all point values and injects via props to avoid per-widget request explosion.
+- **AuditActionController** (`src/baAgentUI/src/core/AuditActionController.ts`) — State machine for AI write approval workflow (`pending → reviewing → approved/rejected/expired`). Polls points with `aiSuggestedVal` tag, enforces life-safety barriers (fire/smoke/emergency tags are read-only), and maintains an audit log. Wrapped by `useAuditActions` hook. `ActionApprovalPanel` renders in the sidebar.
+- **ContextWatcher** (`src/baAgentUI/src/core/ContextWatcher.ts`) — Captures current UI context (active alarms, selected equipment, current view, recent point IDs) and attaches to WebSocket messages for context-aware AI responses.
+
 ## hxPy Integration Model
 
 ### Runtime Mechanism
@@ -209,6 +218,17 @@ Strategy: **infrastructure-first** — build the skeleton, then add business log
 - Shadow Mode safety barrier verification
 - Full frontend integration testing
 
+### Phase 8 — UI Interaction Layer ✅
+- `src/baAgentUI/src/core/AgentChatManager.ts`: WebSocket chat manager with reconnection, message queuing, streaming
+- `src/baAgentUI/src/core/ContextWatcher.ts`: UI context snapshot capture for AI messages
+- `src/baAgentUI/src/hooks/useAgentChat.ts`: React hook with typewriter effect, falls back to HTTP
+- `src/baAgentUI/src/core/HmiCanvasRenderer.ts`: Grid→SVG coordinate mapping
+- `src/baAgentUI/src/components/HmiCanvas/`: SVG canvas with 5 widget types (Gauge, Trend, Status, Setpoint, Alarm)
+- `src/baAgentUI/src/core/AuditActionController.ts`: Approval state machine with life-safety barriers
+- `src/baAgentUI/src/components/ActionApproval/`: Approval card and panel UI
+- `src/baAgentUI/src/hooks/useAuditActions.ts`: React hook for approval workflow
+- **Acceptance:** WebSocket chat with streaming, HMI SVG live preview, AI write approval with audit log
+
 ### Current Progress
 
-**Active Phase: Phase 7** — Phases 0–6 complete. 288 tests passing, mypy clean.
+**Active Phase: Phase 7** — Phases 0–6 complete, Phase 8 (UI Interaction Layer) complete. 288 tests passing, mypy clean.

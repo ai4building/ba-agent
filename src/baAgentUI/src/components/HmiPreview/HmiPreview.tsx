@@ -24,9 +24,10 @@ interface HmiPreviewProps {
   layout: HmiLayoutType;
   onConfirm?: (layout: HmiLayoutType) => void;
   onAdjust?: (layout: HmiLayoutType) => void;
+  onLivePreview?: (layout: HmiLayoutType) => void;
 }
 
-export function HmiPreview({ layout, onConfirm, onAdjust }: HmiPreviewProps) {
+export function HmiPreview({ layout, onConfirm, onAdjust, onLivePreview }: HmiPreviewProps) {
   const [activePage, setActivePage] = useState(0);
   const [hoveredWidget, setHoveredWidget] = useState<string | null>(null);
 
@@ -179,6 +180,12 @@ export function HmiPreview({ layout, onConfirm, onAdjust }: HmiPreviewProps) {
           <Settings size={16} />
           调整布局
         </Button>
+        {onLivePreview && (
+          <Button variant="secondary" onClick={() => onLivePreview(layout)}>
+            <MonitorPlay size={16} />
+            实时预览
+          </Button>
+        )}
         <Button variant="primary" onClick={handleConfirm}>
           <Layout size={16} />
           确认发布

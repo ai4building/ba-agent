@@ -1,0 +1,256 @@
+/* ============================================================
+   ActionApprovalPanel & ActionApprovalCard Styles
+   ============================================================ */
+
+.approval-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.approval-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.approval-panel__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.approval-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 9999px;
+  background: #f59e0b;
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.approval-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Approval Card */
+
+.approval-card {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.approval-card:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.approval-card--safety {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(127, 29, 29, 0.3);
+}
+
+.approval-card--reviewing {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(30, 58, 138, 0.3);
+}
+
+.approval-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.approval-card__point {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.approval-card__lock-icon {
+  font-size: 0.875rem;
+}
+
+.approval-card__point-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.approval-card__equip {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.approval-card__values {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.approval-card__current,
+.approval-card__suggested,
+.approval-card__delta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.approval-card__arrow {
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.approval-card__label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.approval-card__val {
+  font-size: 0.8125rem;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+.approval-card__confidence {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.approval-card__bar {
+  height: 4px;
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.approval-card__bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.approval-card__rationale {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.approval-card__timer {
+  font-size: 0.6875rem;
+  color: #f59e0b;
+  margin-bottom: 0.5rem;
+}
+
+.approval-card__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.approval-card__btn {
+  flex: 1;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.approval-card__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.approval-card__btn--approve {
+  background: #059669;
+  color: #fff;
+}
+
+.approval-card__btn--approve:hover:not(:disabled) {
+  background: #047857;
+}
+
+.approval-card__btn--reject {
+  background: #dc2626;
+  color: #fff;
+}
+
+.approval-card__btn--reject:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+/* Audit Log */
+
+.approval-panel__log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.approval-panel__log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.approval-panel__log-decision {
+  font-size: 0.875rem;
+}
+
+.approval-panel__log-decision--approved {
+  color: #10b981;
+}
+
+.approval-panel__log-decision--rejected {
+  color: #ef4444;
+}
+
+.approval-panel__log-point {
+  flex: 1;
+  color: #cbd5e1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-panel__log-values {
+  font-variant-numeric: tabular-nums;
+}
+
+.approval-panel__log-time {
+  color: #64748b;
+  font-size: 0.6875rem;
+}

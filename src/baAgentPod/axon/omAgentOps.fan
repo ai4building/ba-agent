@@ -6,8 +6,7 @@ using hxPy
 **
 ** BA-Agent 运维阶段核心 Axon 函数集
 **
-@NoDoc
-class omAgentOps : Const
+const class omAgentOps
 {
   //////////////////////////////////////////////////////////////////////////
   // FDD 故障诊断

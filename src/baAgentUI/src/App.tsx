@@ -35,6 +35,11 @@ import {
   valueIsKind,
   Kind,
 } from './services/haystack';
+import { useAuditActions } from './hooks/useAuditActions';
+import { useAgentChat } from './hooks/useAgentChat';
+import { ActionApprovalPanel } from './components/ActionApproval/ActionApprovalPanel';
+import { HmiCanvas } from './components/HmiCanvas/HmiCanvas';
+import type { HmiLayout as HmiLayoutType } from './types';
 
 // ============================================================
 // Types
@@ -791,6 +796,32 @@ function App() {
   // HMI Preview state
   const [hmiLayout, setHmiLayout] = useState<HmiLayout | null>(null);
 
+  // HMI Canvas live preview state
+  const [hmiCanvasLayout, setHmiCanvasLayout] = useState<HmiLayoutType | null>(null);
+  const [showHmiCanvas, setShowHmiCanvas] = useState(false);
+
+  // Audit actions (AI write approval)
+  const {
+    pendingActions,
+    auditLog,
+    pendingCount,
+    approve: approveAction,
+    reject: rejectAction,
+    startReview,
+  } = useAuditActions();
+
+  // WebSocket chat (available when WS endpoint configured)
+  const wsUrl = import.meta.env.VITE_WS_URL as string | undefined;
+  const { connectionState, progress: wsProgress } = useAgentChat({ wsUrl });
+
+  // Handler: open HMI Canvas from HmiPreview "Live Preview" button
+  const handleOpenHmiCanvas = (layout: HmiLayoutType) => {
+    setHmiCanvasLayout(layout);
+    setShowHmiCanvas(true);
+  };
+  // Expose for use by HmiPreview embedded in chat messages
+  void handleOpenHmiCanvas;
+
   // Test connection on mount
   useEffect(() => {
     const testConnection = async () => {
@@ -1387,6 +1418,19 @@ function App() {
           </section>
         </div>
 
+        {/* Audit Approval Panel */}
+        {pendingCount > 0 && (
+          <div style={{ borderTop: '1px solid #1e293b', maxHeight: '300px', overflowY: 'auto' }}>
+            <ActionApprovalPanel
+              pendingActions={pendingActions}
+              auditLog={auditLog}
+              onApprove={approveAction}
+              onReject={rejectAction}
+              onStartReview={startReview}
+            />
+          </div>
+        )}
+
         <div style={{ padding: '16px', borderTop: '1px solid #1e293b', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <button
             onClick={handleClearChat}
@@ -1645,6 +1689,88 @@ function App() {
           </p>
         </div>
       </main>
+
+      {/* HMI Canvas Overlay */}
+      {showHmiCanvas && hmiCanvasLayout && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '2rem',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: '1080px',
+            backgroundColor: '#0f172a', borderRadius: '0.75rem',
+            overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '0.75rem 1rem',
+              borderBottom: '1px solid rgba(148,163,184,0.15)',
+            }}>
+              <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.875rem' }}>
+                HMI 实时画布
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {wsUrl && (
+                  <span style={{
+                    fontSize: '0.6875rem', color: connectionState === 'connected' ? '#10b981' : '#f59e0b',
+                  }}>
+                    WS: {connectionState}
+                  </span>
+                )}
+                {pendingCount > 0 && (
+                  <span style={{
+                    fontSize: '0.6875rem', backgroundColor: '#f59e0b', color: '#000',
+                    padding: '2px 6px', borderRadius: '9999px', fontWeight: 700,
+                  }}>
+                    {pendingCount} pending
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowHmiCanvas(false)}
+                  style={{
+                    background: 'none', border: 'none', color: '#94a3b8',
+                    cursor: 'pointer', padding: '4px',
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <HmiCanvas
+              layout={hmiCanvasLayout}
+              onWidgetClick={(widget) => {
+                console.log('Widget clicked:', widget);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* WebSocket progress indicator */}
+      {wsProgress && (
+        <div style={{
+          position: 'fixed', bottom: '1rem', right: '1rem', zIndex: 50,
+          backgroundColor: 'rgba(15,23,42,0.95)', borderRadius: '0.5rem',
+          padding: '0.75rem 1rem', minWidth: '200px',
+          border: '1px solid rgba(148,163,184,0.2)',
+        }}>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.375rem' }}>
+            {wsProgress.stage}
+          </div>
+          <div style={{
+            height: '4px', backgroundColor: 'rgba(148,163,184,0.2)',
+            borderRadius: '2px', overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: `${wsProgress.percent}%`,
+              backgroundColor: '#3b82f6', borderRadius: '2px',
+              transition: 'width 0.3s',
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,0 +1,70 @@
+/* ============================================================
+   HmiCanvas Styles
+   ============================================================ */
+
+.hmi-canvas {
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.hmi-canvas__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.hmi-canvas__tab {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.hmi-canvas__tab:hover {
+  color: #cbd5e1;
+}
+
+.hmi-canvas__tab--active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.hmi-canvas__svg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 960 / 640;
+  background: #0f172a;
+}
+
+.hmi-canvas__info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  font-size: 0.75rem;
+  color: #e2e8f0;
+}
+
+.hmi-canvas__info-meta {
+  color: #64748b;
+}
+
+.hmi-canvas__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}

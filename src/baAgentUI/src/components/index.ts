@@ -14,5 +14,12 @@ export { OptimizationPanelV2 } from './OptimizationPanel/OptimizationPanelV2';
 export { InspectionPanel } from './InspectionPanel';
 export { HmiPreview } from './HmiPreview';
 
+// HMI Canvas (live SVG rendering)
+export { HmiCanvas } from './HmiCanvas/HmiCanvas';
+
+// Audit / Approval components
+export { ActionApprovalPanel } from './ActionApproval/ActionApprovalPanel';
+export { ActionApprovalCard } from './ActionApproval/ActionApprovalCard';
+
 // Monitoring components
 export { AlarmBanner } from './AlarmBanner';

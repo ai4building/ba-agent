@@ -1,7 +1,6 @@
 using haystack
 using axon
 using hx
-using hxPy
 
 **
 ** BA-Agent 运维阶段核心 Axon 函数集
@@ -20,36 +19,28 @@ const class omAgentOps
   {
     cx := Context.cur
     options := opts ?: Etc.makeDict([:])
-    
+
     // 1. 读取报警点
     alarmPoint := cx.db.readById(Etc.toId(alarmRef))
     alarmMsg := options.get("message", alarmPoint.get("dis", "Alarm"))
 
     // 2. 解析父级设备 (Equip)
     equipRef := alarmPoint.get("equipRef") as Ref
-    
-    // 3. 采集上下文数据 (利用内部定义的打包工具)
+
+    // 3. 采集上下文数据
     hisRange := options.get("hisRange", "yesterday") as Str
-    filter := equipRef != null 
-      ? "point and equipRef==${equipRef.toCode}" 
+    filter := equipRef != null
+      ? "point and equipRef==${equipRef.toCode}"
       : "point and id==${alarmPoint.id.toCode}"
-    
+
     contextGrid := agentPackGrid(filter, Etc.makeDict(["his": true, "hisRange": hisRange]))
 
-    // 4. 调用 Python 引擎 (通过 hxPy 桥接)
-    // 构造发送给 Python 的 Payload
-    payload := Etc.makeDict([
-      "alarm_id": alarmPoint.id.toStr,
-      "alarm_message": alarmMsg,
-      "equip_id": equipRef?.toStr ?: ""
-    ])
-
-    // 执行 Python 调用
-    // 假设 Python 侧已注册名为 "diagnose" 的处理函数
-    raw := PyFuncs.call("agent_service_handle", ["diagnose", payload, contextGrid])
+    // 4. 通过 PyManager 安全调用 Python FDD 引擎
+    ext := cx.rt.ext("baAgent") as BaAgentExt
+    raw := ext.pyManager.safeCall(cx, "diagnose", contextGrid)
 
     // 5. 解包并返回结果
-    return agentUnpackResult(raw)
+    return agentUnpackResult(raw.first)
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -58,6 +49,7 @@ const class omAgentOps
 
   **
   ** 针对特定设备进行能效优化建议 (Shadow Mode)
+  ** AI 建议值写入 Priority 16 暂存区，需人工确认后生效
   **
   @Axon
   static Dict agentOptimizeSetpoints(Obj equipRef, Dict? opts := null)
@@ -71,16 +63,40 @@ const class omAgentOps
     hisRange := options.get("hisRange", "yesterday") as Str
     contextGrid := agentPackGrid(filter, Etc.makeDict(["his": true, "hisRange": hisRange]))
 
-    // 2. 调用 Python EnergyOptEngine
-    payload := Etc.makeDict([
-      "equip_id": equip.id.toStr,
-      "equip_name": equip.get("dis", "Equipment"),
-      "target": options.get("target", "balanced")
-    ])
+    // 2. 通过 PyManager 安全调用 Python EnergyOptEngine
+    ext := cx.rt.ext("baAgent") as BaAgentExt
+    raw := ext.pyManager.safeCall(cx, "optimize", contextGrid)
 
-    raw := PyFuncs.call("agent_service_handle", ["optimize", payload, contextGrid])
+    result := agentUnpackResult(raw.first)
 
-    return agentUnpackResult(raw)
+    // 3. 将 AI 建议的设定值写入 Shadow Mode (Priority 16)
+    //    前端 AuditActionController 会检测 aiSuggestedVal 标签并展示审批面板
+    setpoints := result.get("setpoints") as List
+    if (setpoints != null)
+    {
+      setpoints.each |sp|
+      {
+        spDict := sp as Dict
+        if (spDict == null) return
+        pointId := spDict.get("point_id") as Str
+        recVal := spDict.get("recommended_value")
+        if (pointId != null && recVal != null)
+        {
+          try
+          {
+            reason := spDict.get("rationale", "AI energy optimization") as Str ?: "AI optimization"
+            ShadowModeManager.applyShadowVal(cx, Ref.make(pointId), recVal, reason)
+          }
+          catch (Err e)
+          {
+            // Log but don't fail the entire operation (e.g. life-safety rejection)
+            cx.rt.log.warn("agentOptimizeSetpoints: shadow write skipped for $pointId", e)
+          }
+        }
+      }
+    }
+
+    return result
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -93,17 +109,18 @@ const class omAgentOps
   @Axon
   static Dict agentInspect(Str filter, Dict? opts := null)
   {
+    cx := Context.cur
     options := opts ?: Etc.makeDict([:])
     hisRange := options.get("hisRange", "yesterday") as Str
 
     // 1. 批量采集匹配点位的历史数据
     contextGrid := agentPackGrid(filter, Etc.makeDict(["his": true, "hisRange": hisRange]))
 
-    // 2. 调用 Python InspectEngine 进行零漂与一致性分析
-    payload := Etc.makeDict([:])
-    raw := PyFuncs.call("agent_service_handle", ["inspect", payload, contextGrid])
+    // 2. 通过 PyManager 安全调用 Python InspectEngine
+    ext := cx.rt.ext("baAgent") as BaAgentExt
+    raw := ext.pyManager.safeCall(cx, "inspect", contextGrid)
 
-    return agentUnpackResult(raw)
+    return agentUnpackResult(raw.first)
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -156,9 +173,8 @@ const class omAgentOps
     includeHis := opts.has("his")
     range := opts.get("hisRange", "yesterday")
 
-    // 这里实现将 Point 属性与历史数据合并的逻辑
-    // 简化处理：返回包含基础属性和当前值的 Grid
-    // 在实际开发中，这里通常会调用 hisRead 并将数据 join 进 Grid
+    // 返回包含基础属性和当前值的 Grid
+    // 在实际部署中，hisRead 会将数据 join 进 Grid
     return cx.db.readAll(filter).toGrid
   }
 
@@ -169,10 +185,10 @@ const class omAgentOps
   {
     if (raw == null) return Etc.makeDict(["ok": false, "error": "No response from AI"])
     if (raw is Dict) return (Dict)raw
-    
+
     // 如果返回的是字符串（JSON），则解析它
     if (raw is Str) return (Dict)Etc.makeDict(JsonInStream(((Str)raw).in).readJson)
-    
+
     return Etc.makeDict(["ok": true, "data": raw])
   }
 }

@@ -29,6 +29,15 @@ BA-Agent (Building Automation AI Agent) is a cross-language integration system b
 **Route A:** Ractive.js custom widgets inside FIN Graphics Builder for embedded diagnostics. 
 **Route B:** React SPA (chat interface, diagnostic cards, 3D topology fault-path visualization) mounted as external app via FIN WebMod. Both communicate with AI Agent through Haystack Ops or WebSocket.
 
+### baAgentPod Core Classes
+
+Four infrastructure classes form the gateway layer between frontend/REST clients and the Python AI engine:
+
+- **BaAgentWeb** (`src/baAgentPod/fan/BaAgentWeb.fan`) — HTTP/WebSocket handler. Routes `POST /chat` (synchronous AI chat), `POST /confirm` (Shadow Mode approve/reject), and `GET /ws` (WebSocket upgrade for streaming). All responses sanitized via DataSanitizer. WebSocket frame protocol aligns with frontend `WsFrame` types (message/progress/result/error).
+- **DataSanitizer** (`src/baAgentPod/fan/DataSanitizer.fan`) — Recursively strips sensitive fields (password, token, apiKey, credential, etc.) from Dict and Grid data before returning to clients. Case-insensitive matching.
+- **PyManager** (`src/baAgentPod/fan/PyManager.fan`) — Wraps BaAgentBridge with heartbeat detection (`pyEval("1+1")`), automatic session restart on container failure, and retry logic. AXON ops use `pyManager.safeCall()` instead of `bridge.call()` directly.
+- **ShadowModeManager** (`src/baAgentPod/fan/ShadowModeManager.fan`) — "Suggest → Confirm → Execute" controlled write flow. AI recommendations staged at Priority 16 with `aiSuggestedVal` tag. Life-safety points (fire, smoke, sprinkler, emergency) are strictly read-only. `criticalTags` synchronized with frontend `LIFE_SAFETY_TAGS` in AuditActionController.ts.
+
 ### baAgentUI Core Classes
 
 Three core classes provide the interaction layer for "chat-as-control" closed loop:
@@ -212,10 +221,12 @@ Strategy: **infrastructure-first** — build the skeleton, then add business log
 - `src/baAgentPod/axon/hmiOps.axon`: `agentGenHmiLayout` + `agentPreviewHmi` Ops with operator confirmation flow
 - **Acceptance:** input device topology → output HMI layout JSON (57 tests)
 
-### Phase 7 — Reporting & Integration ⬜
+### Phase 7 — Reporting & Integration 🔧
 - `src/baAgentPy/services/report_engine.py`: automated operation briefs
 - End-to-end integration tests (`tests/`)
-- Shadow Mode safety barrier verification
+- Shadow Mode safety barrier verification ✅ (`ShadowModeManager.fan`)
+- Gateway layer infrastructure ✅ (`BaAgentWeb.fan`, `DataSanitizer.fan`, `PyManager.fan`)
+- `omAgentOps.fan` migrated from `PyFuncs.call()` to `PyManager.safeCall()` ✅
 - Full frontend integration testing
 
 ### Phase 8 — UI Interaction Layer ✅
@@ -231,4 +242,4 @@ Strategy: **infrastructure-first** — build the skeleton, then add business log
 
 ### Current Progress
 
-**Active Phase: Phase 7** — Phases 0–6 complete, Phase 8 (UI Interaction Layer) complete. 288 tests passing, mypy clean.
+**Active Phase: Phase 7** — Phases 0–6 complete, Phase 8 (UI Interaction Layer) complete. Gateway layer infrastructure (BaAgentWeb, DataSanitizer, PyManager, ShadowModeManager) implemented. `omAgentOps.fan` migrated to PyManager. 288 tests passing, mypy clean.

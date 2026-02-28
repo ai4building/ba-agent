@@ -393,7 +393,7 @@ def _generate_warnings(
 # ── Energy Optimization Engine ──
 
 
-class EnergyOptEngine(BaseEngine):
+class OptimizationEngine(BaseEngine):
     """Energy optimization engine.
 
     Analyzes equipment operating data, identifies energy-saving opportunities,
@@ -547,3 +547,7 @@ class EnergyOptEngine(BaseEngine):
         base += min(len(rec_types) * 0.05, 0.15)  # Up to +0.15 for rec diversity
 
         return min(round(base, 2), 0.95)
+
+
+# Backward-compatible alias
+EnergyOptEngine = OptimizationEngine

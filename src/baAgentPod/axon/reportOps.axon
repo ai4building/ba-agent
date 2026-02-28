@@ -2,7 +2,10 @@
 //
 // These ops orchestrate report generation by collecting building operations
 // data (alarms, energy, sensors, equipment), sending it to the Python
-// ReportEngine via hxPy, and returning structured operation briefs.
+// ReportEngine via PyManager, and returning structured operation briefs.
+//
+// All ops use ext("baAgent").pyManager.safeCall() for resilient Python
+// session management (health-check, auto-reconnect, retry on failure).
 //
 // Ops defined in this file (from DESIGN.md Phase 7):
 //   agentDailyBrief     {op}  — generate daily operation brief (all sections)
@@ -89,33 +92,20 @@ agentDailyBrief: (opts: {}) => do
     end
   end
 
-  // 5. Send to Python ReportEngine via hxPy
+  // 5. Build a Grid from collected data for PyManager
   label: opts->label ?: "past 24h"
-
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
-
-  pyDefine(session, {
+  reportGrid: toGrid([{
+    report_type: "daily_brief",
+    label: label,
     alarms: alarms,
     energy: energy,
     sensors: sensors,
-    equipment: equipment,
-    label: label
-  })
+    equipment: equipment
+  }])
 
-  raw: pyEval(session,
-    "svc.handle(action='report', payload={" +
-    "'report_type': 'daily_brief', " +
-    "'time_range': {'label': label}, " +
-    "'alarms': alarms, " +
-    "'energy': energy, " +
-    "'sensors': sensors, " +
-    "'equipment': equipment" +
-    "})"
-  )
+  // 6. Send to Python ReportEngine via PyManager
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "report", reportGrid)
 
   agentUnpackResult(raw)
 end
@@ -144,20 +134,13 @@ agentAlarmSummary: (opts: {}) => do
     end
   end
 
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
+  reportGrid: toGrid([{
+    report_type: "alarm_summary",
+    alarms: alarms
+  }])
 
-  pyDefine(session, {alarms: alarms})
-
-  raw: pyEval(session,
-    "svc.handle(action='report', payload={" +
-    "'report_type': 'alarm_summary', " +
-    "'alarms': alarms" +
-    "})"
-  )
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "report", reportGrid)
 
   agentUnpackResult(raw)
 end
@@ -185,20 +168,13 @@ agentEnergySummary: (opts: {}) => do
     end
   end
 
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
+  reportGrid: toGrid([{
+    report_type: "energy_summary",
+    energy: energy
+  }])
 
-  pyDefine(session, {energy: energy})
-
-  raw: pyEval(session,
-    "svc.handle(action='report', payload={" +
-    "'report_type': 'energy_summary', " +
-    "'energy': energy" +
-    "})"
-  )
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "report", reportGrid)
 
   agentUnpackResult(raw)
 end
@@ -241,21 +217,14 @@ agentMaintReport: (opts: {}) => do
     end
   end
 
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
+  reportGrid: toGrid([{
+    report_type: "maintenance",
+    sensors: sensors,
+    equipment: equipment
+  }])
 
-  pyDefine(session, {sensors: sensors, equipment: equipment})
-
-  raw: pyEval(session,
-    "svc.handle(action='report', payload={" +
-    "'report_type': 'maintenance', " +
-    "'sensors': sensors, " +
-    "'equipment': equipment" +
-    "})"
-  )
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "report", reportGrid)
 
   agentUnpackResult(raw)
 end

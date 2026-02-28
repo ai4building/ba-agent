@@ -14,6 +14,7 @@ from baAgentPy.services import (
     FddEngine,
     HmiEngine,
     InspectEngine,
+    ModelingEngine,
     ReportEngine,
     TaggingEngine,
 )
@@ -28,7 +29,7 @@ def workflow() -> AgentWorkflow:
         InspectEngine(),
         HmiEngine(),
         ReportEngine(),
-        TaggingEngine(),
+        ModelingEngine(),
     ])
 
 
@@ -42,11 +43,11 @@ class TestEngineRegistration:
         assert "inspect" in workflow.registered_engines
         assert "hmi" in workflow.registered_engines
         assert "report" in workflow.registered_engines
-        assert "tagging" in workflow.registered_engines
+        assert "modeling" in workflow.registered_engines
 
     def test_all_actions_indexed(self, workflow: AgentWorkflow) -> None:
         actions = workflow.registered_actions
-        for expected in ["diagnose", "optimize", "inspect", "hmi", "report", "tag"]:
+        for expected in ["diagnose", "optimize", "inspect", "hmi", "report", "tag", "model"]:
             assert expected in actions
 
     def test_empty_workflow(self) -> None:
@@ -66,14 +67,7 @@ class TestEngineRegistration:
 
 class TestRouting:
     @pytest.mark.parametrize("action", [
-        "tag",
-    ])
-    def test_route_to_stub_engine(self, workflow: AgentWorkflow, action: str) -> None:
-        result = workflow.route(action)
-        assert result.status == "stub"
-
-    @pytest.mark.parametrize("action", [
-        "diagnose", "optimize", "inspect", "hmi", "report",
+        "diagnose", "optimize", "inspect", "hmi", "report", "tag", "model",
     ])
     def test_route_implemented_engine(self, workflow: AgentWorkflow, action: str) -> None:
         result = workflow.route(action)
@@ -176,9 +170,9 @@ class TestInterpretAndRoute:
         result = workflow.interpret_and_route("generate HMI layout")
         assert result.status == "ok"
 
-    def test_successful_interpretation_stub(self, workflow: AgentWorkflow) -> None:
+    def test_successful_interpretation_tag(self, workflow: AgentWorkflow) -> None:
         result = workflow.interpret_and_route("auto-tag these points with haystack labels")
-        assert result.status == "stub"
+        assert result.status == "ok"
 
     def test_unknown_returns_error(self, workflow: AgentWorkflow) -> None:
         result = workflow.interpret_and_route("hello world")
@@ -216,7 +210,7 @@ class TestBaseEngineInterface:
         (InspectEngine, "inspect"),
         (HmiEngine, "hmi"),
         (ReportEngine, "report"),
-        (TaggingEngine, "tagging"),
+        (ModelingEngine, "modeling"),
     ])
     def test_engine_metadata(self, engine_cls: type[BaseEngine], expected_name: str) -> None:
         engine = engine_cls()

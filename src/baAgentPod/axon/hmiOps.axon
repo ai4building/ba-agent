@@ -1,8 +1,11 @@
 // HMI Operations — engineering-side HMI logic processing
 //
 // These ops orchestrate HMI auto-generation by collecting device topology,
-// sending it to the Python HmiEngine via hxPy, and returning structured
+// sending it to the Python HmiEngine via PyManager, and returning structured
 // layout JSON for rendering.
+//
+// All ops use ext("baAgent").pyManager.safeCall() for resilient Python
+// session management (health-check, auto-reconnect, retry on failure).
 //
 // Ops defined in this file (from DESIGN.md §3.3 & §Phase 6):
 //   agentGenHmiLayout  {op}  — generate HMI layout JSON from device topology
@@ -15,7 +18,7 @@
 //   1. Reads all matching equipment records
 //   2. For each equipment, collects its child points
 //   3. Packages equipment + point data into a structured payload
-//   4. Sends to Python HmiEngine via hxPy
+//   4. Sends to Python HmiEngine via PyManager
 //   5. Returns structured HMI layout JSON (pages, widgets, navigation)
 //
 // Usage:
@@ -67,21 +70,15 @@ agentGenHmiLayout: (filter, opts: {}) => do
     equipment = equipment.add(equipRec)
   end
 
-  // 3. Send to Python HmiEngine via hxPy
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
+  // 3. Build a Grid from equipment data for PyManager
+  // PyManager.safeCall expects a Grid; pack equipment list as a single-row Grid
+  equipGrid: toGrid([{equipment: equipment}])
 
-  // Define equipment data in Python session
-  pyDefine(session, {equipment: equipment})
+  // 4. Send to Python HmiEngine via PyManager
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "hmi", equipGrid)
 
-  raw: pyEval(session,
-    "svc.handle(action='hmi', payload={'equipment': equipment})"
-  )
-
-  // 4. Unpack result
+  // 5. Unpack result
   agentUnpackResult(raw)
 end
 

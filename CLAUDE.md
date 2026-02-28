@@ -21,9 +21,9 @@ BA-Agent (Building Automation AI Agent) is a cross-language integration system b
 
 - **`src/baAgentPod/`** 
 - — Fantom/AXON plugin layer. AXON functions tagged with `op` are published as Haystack REST API endpoints (custom Ops). Uses Haxall Task engine for persistent background AI agent processes (`taskSend` for async messaging). Connector Tree for BACnet/Modbus device discovery. Direct interaction with building point data via AXON (`curVal`, `hisRead`, Haystack 4 tags). AI write operations go to a staging area (Priority 16) requiring human confirmation. Life-safety points (fire, smoke, emergency power) are strictly read-only.
-- **`src/baAgentPy/`** 
-- — Python AI code 
-- **loaded by hxPy containers** (not an independent service). `main.py` defines `BaAgentService` class, imported via `pyExec()` and invoked via `pyEval()`. LLM orchestration in `core/agent_workflow.py`. Domain engines in `services/`: FDD root cause analysis, energy digital-twin optimization, virtual inspection sensor health scoring, report generation.
+- **`src/baAgentPy/`**
+- — Python AI code
+- **loaded by hxPy containers** (not an independent service). `main.py` defines `BaAgentService` class (thin wrapper), imported via `pyExec()` and invoked via `pyEval()`. Core orchestration in `core/llm_orchestrator.py` (`LLMOrchestrator` — merges engine routing + LLM intent parsing). Domain engines in `services/`: DiagnosticEngine (FDD), OptimizationEngine (energy), InspectionEngine (virtual inspection), HmiLayoutEngine (HMI generation), ReportEngine, ModelingEngine (Haystack 4 semantic tagging). Response format: flat dict with `ok`, `action`, `r_`-prefixed result keys.
 - **`src/baAgentUI/`** 
 - — Dual frontend approach. 
 **Route A:** Ractive.js custom widgets inside FIN Graphics Builder for embedded diagnostics. 
@@ -196,28 +196,29 @@ Strategy: **infrastructure-first** — build the skeleton, then add business log
 - **Acceptance:** AXON can call Python via hxPy and receive structured results
 
 ### Phase 2 — AI Core Orchestration ✅
-- `src/baAgentPy/core/agent_workflow.py`: task routing & instruction parsing
+- `src/baAgentPy/core/llm_orchestrator.py`: unified LLMOrchestrator (engine registry + LLM intent parsing + flat response format)
+- `src/baAgentPy/core/agent_workflow.py`: (deprecated, retained for backward compat; patterns reused by LLMOrchestrator)
 - Define service base class / interfaces
-- **Acceptance:** text instruction routes to correct service stub
+- **Acceptance:** text instruction routes to correct engine
 
 ### Phase 3 — FDD Alarm Diagnostics (First Business Scenario) ✅
-- `src/baAgentPy/services/fdd_engine.py`: fault pattern recognition + root cause analysis (RCA)
+- `src/baAgentPy/services/fdd_engine.py`: DiagnosticEngine (alias: FddEngine) — fault pattern recognition + root cause analysis (RCA)
 - `src/baAgentPod/axon/omOps.axon`: alarm context data collection
 - Frontend: diagnostic result card component
 - **Acceptance:** simulated alarm → AI returns diagnosis with confidence score
 
 ### Phase 4 — Energy Optimization ✅
-- `src/baAgentPy/services/energy_opt.py`: load profiling, SAT/CHW/static pressure setpoint optimization, energy savings estimation
+- `src/baAgentPy/services/energy_opt.py`: OptimizationEngine (alias: EnergyOptEngine) — load profiling, SAT/CHW/static pressure setpoint optimization, energy savings estimation
 - AXON: `agentOptimizeSetpoints` full workflow + `agentLoadShed` demand-response strategy
 - **Acceptance:** simulated equipment data → AI returns optimization with savings estimate (42 tests)
 
 ### Phase 5 — Virtual Inspection ✅
-- `src/baAgentPy/services/inspect_engine.py`: per-sensor health scoring (0-100), 6 check types (frozen, drift, spike, range violation, missing data, inconsistency), consistency checks across correlated sensor groups
+- `src/baAgentPy/services/inspect_engine.py`: InspectionEngine (alias: InspectEngine) — per-sensor health scoring (0-100), 6 check types (frozen, drift, spike, range violation, missing data, inconsistency), consistency checks across correlated sensor groups
 - AXON: `agentInspect` full workflow (filter → agentPackGrid → hxPy → health reports)
 - **Acceptance:** simulated sensor data → per-sensor health scores with findings (51 tests)
 
 ### Phase 6 — HMI Auto-Generation ✅
-- `src/baAgentPy/services/hmi_engine.py`: equipment classification, widget mapping, grid layout generation, data bindings (452 lines)
+- `src/baAgentPy/services/hmi_engine.py`: HmiLayoutEngine (alias: HmiEngine) — equipment classification, widget mapping, grid layout generation, data bindings
 - `src/baAgentPod/axon/hmiOps.axon`: `agentGenHmiLayout` + `agentPreviewHmi` Ops with operator confirmation flow
 - **Acceptance:** input device topology → output HMI layout JSON (57 tests)
 
@@ -242,4 +243,4 @@ Strategy: **infrastructure-first** — build the skeleton, then add business log
 
 ### Current Progress
 
-**Active Phase: Phase 7** — Phases 0–6 complete, Phase 8 (UI Interaction Layer) complete. Gateway layer infrastructure (BaAgentWeb, DataSanitizer, PyManager, ShadowModeManager) implemented. `omAgentOps.fan` migrated to PyManager. 288 tests passing, mypy clean.
+**Active Phase: Phase 7** — Phases 0–6 complete, Phase 8 (UI Interaction Layer) complete. Gateway layer infrastructure (BaAgentWeb, DataSanitizer, PyManager, ShadowModeManager) implemented. `omAgentOps.fan` migrated to PyManager. Python AI layer refactored: `LLMOrchestrator` replaces `AgentWorkflow` + scattered LLM logic; engine classes renamed with backward-compatible aliases; `ModelingEngine` replaces `TaggingEngine` stub with full point-name parsing + Haystack 4 tag mapping + AXON script generation; response format fixed to flat `{ok, action, r_*}`. 467 tests passing, mypy clean.

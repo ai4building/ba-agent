@@ -39,16 +39,7 @@ class TestServiceRouting:
         assert "Unknown action" in result["error"]
 
     @pytest.mark.parametrize("action", [
-        "tag",
-    ])
-    def test_stub_actions_return_ok(self, svc: BaAgentService, action: str) -> None:
-        result = svc.handle(action=action)
-        assert result["ok"] is True
-        assert result["action"] == action
-        assert result["r_status"] == "stub"
-
-    @pytest.mark.parametrize("action", [
-        "diagnose", "optimize", "inspect", "hmi", "report",
+        "diagnose", "optimize", "inspect", "hmi", "report", "tag", "model",
     ])
     def test_implemented_actions_return_ok(self, svc: BaAgentService, action: str) -> None:
         result = svc.handle(action=action)

@@ -300,7 +300,7 @@ def _short_label(point_name: str, equip_name: str) -> str:
 # ── HMI Engine ──
 
 
-class HmiEngine(BaseEngine):
+class HmiLayoutEngine(BaseEngine):
     """HMI auto-generation engine.
 
     Takes device topology as input and generates HMI layout JSON,
@@ -449,3 +449,7 @@ class HmiEngine(BaseEngine):
         base += min(total_widgets * 0.01, 0.15)  # Up to +0.15 for widget count
 
         return min(round(base, 2), 0.95)
+
+
+# Backward-compatible alias
+HmiEngine = HmiLayoutEngine

@@ -411,7 +411,7 @@ def _group_by_sensor_type(point_data: list[dict[str, Any]]) -> dict[str, list[di
 # ── Inspection Engine ──
 
 
-class InspectEngine(BaseEngine):
+class InspectionEngine(BaseEngine):
     """Virtual inspection engine.
 
     Scores sensor health (0-100), detects zero-drift, frozen values,
@@ -517,3 +517,7 @@ class InspectEngine(BaseEngine):
             message=result.summary,
             data=result.model_dump(),
         )
+
+
+# Backward-compatible alias
+InspectEngine = InspectionEngine

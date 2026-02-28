@@ -279,10 +279,10 @@ class TestResultStructure:
             result = svc.handle(action=action, payload=payload)
             assert result["r_status"] == "ok", f"{action} returned {result['r_status']}"
 
-    def test_stub_engine_returns_stub(self, svc: BaAgentService) -> None:
-        """Tag engine is still a stub."""
+    def test_modeling_engine_returns_ok(self, svc: BaAgentService) -> None:
+        """Modeling engine (formerly tag stub) is now implemented."""
         result = svc.handle(action="tag")
-        assert result["r_status"] == "stub"
+        assert result["r_status"] == "ok"
 
     def test_unknown_action_returns_error(self, svc: BaAgentService) -> None:
         result = svc.handle(action="nonexistent_action")

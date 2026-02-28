@@ -311,7 +311,7 @@ def _build_rca_chain(point_data: list[dict[str, Any]], active_conditions: set[st
 # ── FDD Engine ──
 
 
-class FddEngine(BaseEngine):
+class DiagnosticEngine(BaseEngine):
     """Fault Detection & Diagnostics engine.
 
     Analyzes alarm data, correlates related sensor readings, and performs
@@ -456,3 +456,7 @@ class FddEngine(BaseEngine):
         if confidence > 0.5:
             return FaultSeverity.MEDIUM
         return FaultSeverity.LOW
+
+
+# Backward-compatible alias
+FddEngine = DiagnosticEngine

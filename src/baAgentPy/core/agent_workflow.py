@@ -1,13 +1,18 @@
 """AI task routing and instruction parsing.
 
+.. deprecated::
+    This module is superseded by :mod:`baAgentPy.core.llm_orchestrator`.
+    ``LLMOrchestrator`` merges the routing/parsing logic from this module
+    with LLM integration from ``main.py``.  ``AgentWorkflow`` is retained
+    for backward compatibility but new code should use ``LLMOrchestrator``.
+
 AgentWorkflow is the central orchestrator that:
 1. Maintains a registry of domain-specific engines (FDD, energy, etc.)
 2. Parses natural language instructions into structured actions
 3. Routes requests to the appropriate engine
 4. Returns standardized results
 
-Currently uses keyword-based NL parsing. Will be upgraded to LLM-based
-instruction parsing (via LangChain) in a later phase.
+Keyword patterns (_INTENT_PATTERNS) are reused by LLMOrchestrator.
 """
 
 from __future__ import annotations

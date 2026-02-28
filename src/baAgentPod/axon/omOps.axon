@@ -1,8 +1,11 @@
 // O&M Operations — FDD, energy optimization, and virtual inspection logic
 //
 // These ops orchestrate the AI diagnosis workflow by collecting building
-// context data, sending it to the Python AI engine via hxPy, and returning
+// context data, sending it to the Python AI engine via PyManager, and returning
 // structured results.
+//
+// All ops use ext("baAgent").pyManager.safeCall() for resilient Python
+// session management (health-check, auto-reconnect, retry on failure).
 //
 // Ops defined in this file:
 //   agentDiagnose           {op}  — trigger FDD root cause analysis via Python
@@ -18,7 +21,7 @@
 //   1. Reads the alarm point and its parent equipment
 //   2. Collects all sibling points under the same equipment
 //   3. Packages current values + recent history stats into a Grid
-//   4. Sends to Python FddEngine via hxPy
+//   4. Sends to Python FddEngine via PyManager
 //   5. Returns structured diagnosis with confidence score
 //
 // Usage:
@@ -48,27 +51,9 @@ agentDiagnose: (alarmRef, opts: {}) => do
   hisRange: opts->hisRange ?: "yesterday"
   contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
 
-  // 4. Send to Python FDD engine via hxPy
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
-
-  // Define context data in Python session
-  pyDefine(session, {grid: contextGrid})
-
-  // Build the diagnose call
-  alarmIdStr: alarmRef.toStr
-  equipIdStr: if (equipRef != null) equipRef.toStr else ""
-
-  raw: pyEval(session,
-    "svc.handle(action='diagnose', payload={" +
-    "'alarm_id': '" + alarmIdStr + "', " +
-    "'alarm_message': '" + alarmMsg.replace("'", "\\'") + "', " +
-    "'equip_id': '" + equipIdStr + "'" +
-    "}, grid=grid)"
-  )
+  // 4. Send to Python FDD engine via PyManager
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "diagnose", contextGrid)
 
   // 5. Unpack result
   agentUnpackResult(raw)
@@ -114,7 +99,7 @@ end
 // Given an equipment ref, this op:
 //   1. Reads the equipment record and all child points
 //   2. Collects current values + recent history stats via agentPackGrid
-//   3. Sends to Python EnergyOptEngine via hxPy
+//   3. Sends to Python EnergyOptEngine via PyManager
 //   4. Returns structured optimization result with setpoint recommendations
 //
 // Usage:
@@ -135,27 +120,9 @@ agentOptimizeSetpoints: (equipRef, opts: {}) => do
   hisRange: opts->hisRange ?: "yesterday"
   contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
 
-  // 3. Send to Python EnergyOptEngine via hxPy
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
-
-  // Define context data in Python session
-  pyDefine(session, {grid: contextGrid})
-
-  // Build optimization call
-  equipIdStr: equipRef.toStr
-  target: opts->target ?: "balanced"
-
-  raw: pyEval(session,
-    "svc.handle(action='optimize', payload={" +
-    "'equip_id': '" + equipIdStr + "', " +
-    "'equip_name': '" + equipDis.replace("'", "\\'") + "', " +
-    "'target': '" + target + "'" +
-    "}, grid=grid)"
-  )
+  // 3. Send to Python EnergyOptEngine via PyManager
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "optimize", contextGrid)
 
   // 4. Unpack result
   agentUnpackResult(raw)
@@ -207,7 +174,7 @@ end
 // Given a point filter, this op:
 //   1. Reads all matching sensor points
 //   2. Collects current values + recent history stats via agentPackGrid
-//   3. Sends to Python InspectEngine via hxPy
+//   3. Sends to Python InspectEngine via PyManager
 //   4. Returns per-sensor health scores (0-100) with findings
 //
 // Usage:
@@ -222,19 +189,9 @@ agentInspect: (filter, opts: {}) => do
   hisRange: opts->hisRange ?: "yesterday"
   contextGrid: agentPackGrid(filter, {his: true, hisRange: hisRange})
 
-  // 2. Send to Python InspectEngine via hxPy
-  session: py(image: "ba-agent-py:latest")
-  pyExec(session,
-    "import sys; sys.path.insert(0, '/io'); " +
-    "from baAgentPy.main import BaAgentService; svc = BaAgentService()"
-  )
-
-  // Define context data in Python session
-  pyDefine(session, {grid: contextGrid})
-
-  raw: pyEval(session,
-    "svc.handle(action='inspect', payload={}, grid=grid)"
-  )
+  // 2. Send to Python InspectEngine via PyManager
+  ext: context.ext("baAgent")
+  raw: ext.pyManager.safeCall(context, "inspect", contextGrid)
 
   // 3. Unpack result
   agentUnpackResult(raw)

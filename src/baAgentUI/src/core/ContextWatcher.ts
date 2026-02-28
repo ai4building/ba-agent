@@ -11,7 +11,7 @@ interface ContextDeps {
   recentPointIds: string[];
 }
 
-const VALID_VIEWS = ['chat', 'hmi', 'inspection', 'optimization'] as const;
+const VALID_VIEWS = ['chat', 'hmi', 'inspection', 'optimization', 'context'] as const;
 type ValidView = (typeof VALID_VIEWS)[number];
 
 function isValidView(v: string): v is ValidView {

@@ -39,6 +39,7 @@ import { useAuditActions } from './hooks/useAuditActions';
 import { useAgentChat } from './hooks/useAgentChat';
 import { ActionApprovalPanel } from './components/ActionApproval/ActionApprovalPanel';
 import { HmiCanvas } from './components/HmiCanvas/HmiCanvas';
+import { ContextBrowser } from './components/ContextBrowser';
 import type { HmiLayout as HmiLayoutType } from './types';
 
 // ============================================================
@@ -1403,6 +1404,14 @@ function App() {
               </div>
             </div>
           </section>
+
+          {/* Context Browser */}
+          <ContextBrowser
+            onSelectEquip={(equipId, equipDis) => {
+              // Inject selected equip into context for AI awareness
+              console.log('[ContextBrowser] Selected:', equipId, equipDis);
+            }}
+          />
 
           {/* Security & Audit */}
           <section style={{ paddingTop: '16px', borderTop: '1px solid #1e293b' }}>

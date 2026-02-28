@@ -224,8 +224,21 @@ export interface WsErrorFrame extends WsFrame {
 export interface ContextSnapshot {
   activeAlarms: number;
   selectedEquipRef?: string;
-  currentView: 'chat' | 'hmi' | 'inspection' | 'optimization';
+  currentView: 'chat' | 'hmi' | 'inspection' | 'optimization' | 'context';
   recentPointIds: string[];
+}
+
+// Navigation tree types for context browser
+export interface NavNode {
+  id: string;
+  dis: string;
+  navId?: string;
+  hasChildren: boolean;
+  kind: 'site' | 'equip' | 'point' | 'folder';
+  tags?: string[];
+  curVal?: number | string | boolean;
+  unit?: string;
+  graphicRef?: string;
 }
 
 export type WsConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
